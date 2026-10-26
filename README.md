@@ -75,9 +75,14 @@ src/
 | `financial`     | Budget & financial                                                    |
 | `ai`            | AI workspace (TANIA/JARVIS), guardrails, model gateway                |
 
-Aturan antar modul: **dilarang** mengimpor `repositories/`/`services/` modul lain.
-Integrasi antar domain lewat tabel database + `audit_logs`, atau tipe DTO di
-`src/shared/types/api.ts`.
+Aturan antar modul: **dilarang** mengimpor `api/`/`services/`/`repositories/`
+modul lain. Integrasi antar domain lewat tabel database + `audit_logs`, atau
+tipe DTO di `src/shared/types/api.ts`.
+
+Aturan ini **ditegakkan otomatis** oleh ESLint (`no-restricted-imports` per
+domain di `eslint.config.mjs`), jadi `npm run lint` gagal bila ada import
+lintas-domain. Import di dalam domain sendiri boleh memakai path relatif atau
+alias `@/modules/<domain>/...`.
 
 ## 3. Database & migration
 
