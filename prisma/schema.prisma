@@ -1,0 +1,70 @@
+// DPS Portal — core schema (identity & audit baseline).
+// Konvensi: setiap domain menambahkan model group-nya sendiri di file ini,
+// dengan komentar pembatas `// --- <domain> ---` (lihat README §Struktur Data).
+// Aturan (PRD §9.2): UUID PK, FK dengan ON DELETE eksplisit, audit log immutable.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- identity ---
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  name         String
+  // Hash kredensial login (DEC-03 masih asumsi; lihat README §Asumsi).
+  passwordHash String?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  roles        UserRole[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid()) @db.Uuid
+  key         String     @unique
+  name        String
+  description String?
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @db.Uuid
+  roleId     String   @db.Uuid
+  assignedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// --- audit ---
+
+// Append-only secara konvensi: aplikasi hanya boleh menulis (create),
+// tidak ada update/delete lewat service (NFR-014, PRD §9.2).
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String?
+  changes    Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

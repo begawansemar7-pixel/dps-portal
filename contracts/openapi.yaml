@@ -1,0 +1,225 @@
+openapi: 3.1.0
+info:
+  title: DPS Portal API
+  version: 0.1.0
+  description: |
+    Contract-first API untuk Portal Chapter DPS (Modular Monolith, API-First).
+
+    Aturan kontrak:
+    - Semua endpoint berada di bawah prefix `/api/v1`.
+    - Success response memakai envelope `{ "data": ... }` (list) atau objek DTO langsung.
+    - Error response selalu memakai envelope `ApiErrorBody` dengan `request_id`.
+    - Shared TypeScript types: `src/shared/types/api.ts` (sinkron manual dengan file ini).
+  license:
+    name: Proprietary
+servers:
+  - url: /api/v1
+    description: Same-origin (Next.js BFF)
+tags:
+  - name: health
+    description: Liveness/readiness
+  - name: auth
+    description: Autentikasi & sesi (implementasi mengikuti keputusan DEC-03)
+  - name: identity
+    description: User & RBAC
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness check + status koneksi database
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service sehat dan database terhubung
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service terdegradasi (database tidak terhubung)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /users:
+    get:
+      tags: [identity]
+      summary: Daftar user beserta role-nya
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Daftar user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserDto"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Tukar kredensial menjadi sesi (endpoint dasar auth/RBAC)
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Sesi dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Akhiri sesi berjalan
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Sesi diakhiri
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: User pada sesi berjalan (dipakai guard RBAC di UI)
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profil user sesi saat ini
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Token sesi/JWT. Sumber autentikasi final (Enterprise SSO vs credentials)
+        menunggu keputusan DEC-03 — lihat README §Asumsi.
+
+  responses:
+    BadRequest:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorBody"
+    Unauthorized:
+      description: Tidak terautentikasi / sesi berakhir
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorBody"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, db, version, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        db:
+          type: string
+          enum: [up, down]
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    RoleDto:
+      type: object
+      required: [key, name]
+      properties:
+        key:
+          type: string
+          examples: [ADMIN]
+        name:
+          type: string
+
+    UserDto:
+      type: object
+      required: [id, email, name, isActive, roles, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        isActive:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleDto"
+        createdAt:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    SessionDto:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserDto"
+
+    ApiErrorBody:
+      type: object
+      required: [error, request_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              examples: [BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, INTERNAL]
+            message:
+              type: string
+            details: {}
+        request_id:
+          type: string
