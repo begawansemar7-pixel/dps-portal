@@ -58,3 +58,8 @@ jobs:
       # Verifikasi migration jalan dari awal (tanpa error) + seed idempoten.
       - run: npx prisma migrate deploy
       - run: npm run db:seed
+      # Seed diulang untuk membuktikan idempoten (tidak menduplikasi data).
+      - run: npm run db:seed
+      # Invarian DB: audit_logs append-only (UPDATE/DELETE/TRUNCATE ditolak),
+      # FK menolak referensi tak dikenal, seed tidak terduplikasi.
+      - run: npm run db:verify

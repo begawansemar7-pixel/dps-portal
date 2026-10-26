@@ -52,8 +52,10 @@ model UserRole {
 
 // --- audit ---
 
-// Append-only secara konvensi: aplikasi hanya boleh menulis (create),
-// tidak ada update/delete lewat service (NFR-014, PRD §9.2).
+// Append-only BUKAN sekadar konvensi — diawasi DATABASE: aplikasi hanya boleh menulis
+// (create), tidak ada update/delete lewat service (NFR-014, PRD §9.2); trigger
+// di migration `20261026153000_audit_log_append_only` menolak UPDATE/DELETE/
+// TRUNCATE di level PostgreSQL.
 model AuditLog {
   id         String   @id @default(uuid()) @db.Uuid
   actorId    String?  @db.Uuid
