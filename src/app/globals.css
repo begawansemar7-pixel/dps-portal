@@ -1,44 +1,118 @@
+/*
+ * Design tokens — DPS Portal (DPSP-28)
+ *
+ * Arsitektur 3 lapis:
+ *   1. `@theme`        → token statis (tipografi, spacing, radius) — utility Tailwind.
+ *   2. `@theme inline` → pemetaan token semantik → utility (warna, shadow, font).
+ *   3. `:root` / `.dark` → nilai semantik light/dark.
+ *
+ * Konvensi:
+ *   - Semua nilai warna dalam oklch (perceptual, konsisten antar mode).
+ *   - Kontras teks ≥ 4.5:1 dan non-teks ≥ 3:1 (WCAG 2.2 AA) — diverifikasi
+ *     otomatis oleh `src/design/tokens.test.ts`; jangan mengubah nilai tanpa
+ *     menjalankan test tersebut.
+ *   - Grid spacing 4/8px: satu unit --spacing = 0.25rem = 4px.
+ *
+ * Dokumentasi lengkap: docs/design-tokens.md
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+ * 1. TIPOGRAFI
+ * Skala tipografi — setiap pasangan size/line-height jatuh di grid 4px.
+ * ========================================================================== */
+@theme {
+  /* Grid spacing 4px (utility `p-4` = 16px, dst). Kenaikan utilitas selalu
+   * kelipatan 4px; gunakan kelipatan 8px (p-2, p-4, p-6…) untuk layout. */
+  --spacing: 0.25rem;
+
+  /* Target sentuh minimum 44×44px (WCAG 2.2, 2.5.8 Target Size Minimum). */
+  --spacing-touch: 2.75rem;
+
+  /* Skala huruf — {size} / {line-height} dalam px @ 16px root. */
+  --text-xs: 0.75rem; /* 12/16 — label, caption */
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem; /* 14/20 — body sekunder, UI dens */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem; /* 16/24 — body utama */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem; /* 18/28 — body menonjol */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem; /* 20/28 — subjudul */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem; /* 24/32 — judul section */
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem; /* 30/36 — judul halaman */
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.25rem; /* 36/40 — judul hero */
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl: 3rem; /* 48/48 — display */
+  --text-5xl--line-height: 3rem;
+}
+
+/* ==========================================================================
+ * 2. PEMETAAN TOKEN → UTILITY TAILWIND
+ * `inline` agar nilai mengikuti kaskade :root/.dark.
+ * ========================================================================== */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-text: var(--warning-text);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Font families — variabel disuntik next/font di <html> (layout.tsx). */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+
+  /* Elevation — nilai per-mode di :root/.dark. */
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-xl: var(--elevation-xl);
+
+  /* Radius — diturunkan dari satu token dasar. */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,73 +122,139 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ==========================================================================
+ * 3. TOKEN SEMANTIK — LIGHT
+ * ========================================================================== */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.993 0.003 262);
+  --foreground: oklch(0.21 0.02 262);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.02 262);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --popover-foreground: oklch(0.21 0.02 262);
+
+  /* Primary — indigo merek. Dipakai solid (cta) dan sebagai warna fokus. */
+  --primary: oklch(0.49 0.16 262);
+  --primary-foreground: oklch(0.985 0.005 262);
+
+  /* Secondary & muted — permukaan netral dingin. */
+  --secondary: oklch(0.94 0.018 262);
+  --secondary-foreground: oklch(0.32 0.05 262);
+  --muted: oklch(0.955 0.008 262);
+  --muted-foreground: oklch(0.51 0.02 262);
+  --accent: oklch(0.925 0.03 262);
+  --accent-foreground: oklch(0.32 0.06 262);
+
+  /* Semantik status. Solid (`bg-x text-x-foreground`) dan teks di permukaan
+   * (`text-x`) keduanya lulus AA — lihat docs/design-tokens.md § Status. */
+  --destructive: oklch(0.515 0.19 27.3);
+  --destructive-foreground: oklch(0.985 0.01 27.3);
+  --success: oklch(0.5 0.13 150);
+  --success-foreground: oklch(0.985 0.01 150);
+  --warning: oklch(0.795 0.135 78);
+  --warning-foreground: oklch(0.26 0.055 78);
+  /* Amber terlalu terang untuk teks di permukaan terang — pakai token ini. */
+  --warning-text: oklch(0.46 0.095 70);
+  --info: oklch(0.52 0.12 240);
+  --info-foreground: oklch(0.985 0.01 240);
+
+  /* Border dekoratif (pemisah); batas fungsional pakai --input / --ring
+   * yang diverifikasi ≥3:1 terhadap permukaan (WCAG 2.2, 1.4.11). */
+  --border: oklch(0.915 0.012 262);
+  --input: oklch(0.635 0.02 262);
+  --ring: oklch(0.49 0.16 262);
+
+  /* Chart — 5 hue berbeda, ≥3:1 terhadap card. */
+  --chart-1: oklch(0.55 0.15 262);
+  --chart-2: oklch(0.6 0.11 190);
+  --chart-3: oklch(0.62 0.13 75);
+  --chart-4: oklch(0.58 0.18 330);
+  --chart-5: oklch(0.56 0.13 150);
+
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --sidebar: oklch(0.975 0.006 262);
+  --sidebar-foreground: oklch(0.21 0.02 262);
+  --sidebar-primary: oklch(0.49 0.16 262);
+  --sidebar-primary-foreground: oklch(0.985 0.005 262);
+  --sidebar-accent: oklch(0.925 0.03 262);
+  --sidebar-accent-foreground: oklch(0.32 0.06 262);
+  --sidebar-border: oklch(0.915 0.012 262);
+  --sidebar-ring: oklch(0.49 0.16 262);
+
+  /* Elevation — dua lapis (ambient + key), bayangan ber-tint indigo. */
+  --elevation-xs: 0 1px 2px oklch(0.23 0.02 262 / 0.06);
+  --elevation-sm: 0 1px 2px oklch(0.23 0.02 262 / 0.06),
+    0 1px 3px oklch(0.23 0.02 262 / 0.08);
+  --elevation-md: 0 2px 4px oklch(0.23 0.02 262 / 0.06),
+    0 4px 10px oklch(0.23 0.02 262 / 0.08);
+  --elevation-lg: 0 4px 10px oklch(0.23 0.02 262 / 0.07),
+    0 12px 28px oklch(0.23 0.02 262 / 0.1);
+  --elevation-xl: 0 8px 16px oklch(0.23 0.02 262 / 0.08),
+    0 20px 48px oklch(0.23 0.02 262 / 0.12);
 }
 
+/* ==========================================================================
+ * 4. TOKEN SEMANTIK — DARK
+ * ========================================================================== */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.16 0.015 262);
+  --foreground: oklch(0.965 0.008 262);
+  --card: oklch(0.205 0.02 262);
+  --card-foreground: oklch(0.965 0.008 262);
+  --popover: oklch(0.225 0.02 262);
+  --popover-foreground: oklch(0.965 0.008 262);
+
+  /* Primary dibuat lebih terang di dark agar tetap ≥3:1 dari background. */
+  --primary: oklch(0.72 0.13 262);
+  --primary-foreground: oklch(0.17 0.04 262);
+
+  --secondary: oklch(0.29 0.025 262);
+  --secondary-foreground: oklch(0.96 0.008 262);
+  --muted: oklch(0.27 0.02 262);
+  --muted-foreground: oklch(0.71 0.02 262);
+  --accent: oklch(0.31 0.035 262);
+  --accent-foreground: oklch(0.96 0.008 262);
+
+  /* Semantik status: di dark, solid memakai foreground gelap. */
+  --destructive: oklch(0.67 0.19 25);
+  --destructive-foreground: oklch(0.16 0.03 25);
+  --success: oklch(0.75 0.14 150);
+  --success-foreground: oklch(0.17 0.04 150);
+  --warning: oklch(0.82 0.135 85);
+  --warning-foreground: oklch(0.24 0.05 85);
+  /* Di dark, amber --warning sudah cukup kontras untuk teks di permukaan. */
+  --warning-text: oklch(0.82 0.135 85);
+  --info: oklch(0.72 0.12 240);
+  --info-foreground: oklch(0.17 0.04 240);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(0.56 0.02 262);
+  --ring: oklch(0.72 0.13 262);
+
+  --chart-1: oklch(0.72 0.13 262);
+  --chart-2: oklch(0.75 0.11 190);
+  --chart-3: oklch(0.8 0.14 80);
+  --chart-4: oklch(0.72 0.17 330);
+  --chart-5: oklch(0.73 0.14 150);
+
+  --radius: 0.625rem;
+
+  --sidebar: oklch(0.19 0.02 262);
+  --sidebar-foreground: oklch(0.965 0.008 262);
+  --sidebar-primary: oklch(0.72 0.13 262);
+  --sidebar-primary-foreground: oklch(0.17 0.04 262);
+  --sidebar-accent: oklch(0.31 0.035 262);
+  --sidebar-accent-foreground: oklch(0.96 0.008 262);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.72 0.13 262);
+
+  /* Elevation dark — lebih pekat (bayangan minim efek di permukaan gelap). */
+  --elevation-xs: 0 1px 2px oklch(0 0 0 / 0.4);
+  --elevation-sm: 0 1px 2px oklch(0 0 0 / 0.45), 0 1px 3px oklch(0 0 0 / 0.5);
+  --elevation-md: 0 2px 4px oklch(0 0 0 / 0.45), 0 4px 10px oklch(0 0 0 / 0.55);
+  --elevation-lg: 0 4px 10px oklch(0 0 0 / 0.5), 0 12px 28px oklch(0 0 0 / 0.6);
+  --elevation-xl: 0 8px 16px oklch(0 0 0 / 0.55), 0 20px 48px oklch(0 0 0 / 0.65);
 }
 
 @layer base {
