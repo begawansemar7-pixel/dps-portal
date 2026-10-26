@@ -42,11 +42,14 @@ Perintah penting lainnya:
 | `npm run db:generate`  | Regenerate Prisma client                           |
 | `npx prisma migrate dev --name <nama>` | Buat migration baru setelah ubah schema |
 | `npm run db:seed`      | Seed database (idempoten)                          |
+| `npm run db:reset`     | Reset database lokal: drop, migrate ulang, seed ulang (**destruktif**) |
+| `npm run db:verify`    | Verifikasi invarian DB (append-only, FK, seed idempoten) |
 
 ## 2. Struktur folder (Modular Monolith)
 
 ```
 contracts/            # Kontrak API (OpenAPI) — sumber kebenaran kontrak
+docs/adr/             # Architecture Decision Records (mis. ADR-001 ORM/migration)
 prisma/               # Schema DB terpusat per domain + migrations + seed
 scripts/              # Tooling operasional (branch protection, dll.)
 src/
@@ -86,15 +89,50 @@ alias `@/modules/<domain>/...`.
 
 ## 3. Database & migration
 
+Keputusan ORM & migration tool dicatat di `docs/adr/ADR-001-orm-dan-migration.md`.
+
 - ORM: **Prisma 7** (`prisma/schema.prisma`, config di `prisma7.config.ts`).
 - Skema inti: `users`, `roles`, `user_roles` (RBAC), `audit_logs`.
-- Konvensi (PRD §9.2): **UUID PK**, **FK dengan `ON DELETE` eksplisit**, tabel
-  audit append-only (hanya `create` dari aplikasi), timestamp `createdAt`/`updatedAt`.
 - Migration dikomit di `prisma/migrations/` dan **wajib backward-compatible**
   (tambah kolom nullable/default dulu, drop di PR terpisah setelah tidak dipakai).
 - Menambah field domain: edit group `// --- <domain> ---` di `schema.prisma`,
   jalankan `npx prisma migrate dev --name <nama>`, commit hasil migration-nya.
-- Seed (`prisma/seed.ts`) bersifat idempoten (upsert) — aman dijalankan ulang.
+
+### Konvensi penamaan (berlaku untuk semua modul)
+
+| Objek          | Aturan                                                                  |
+| -------------- | ----------------------------------------------------------------------- |
+| Tabel          | snake_case, plural, via `@@map` (`users`, `user_roles`, `audit_logs`)    |
+| Kolom          | camelCase (`passwordHash`, `createdAt`)                                 |
+| Primary key    | `id` UUID (`@default(uuid()) @db.Uuid`); tabel join boleh composite key (`user_roles`) |
+| Foreign key    | `<entity>Id` UUID dengan `onDelete` **eksplisit** (Cascade / SetNull / Restrict) |
+| Timestamp      | `createdAt`, `updatedAt` (`@updatedAt`)                                  |
+
+### Integritas & audit (PRD §9.2)
+
+- **UUID PK + FK** dengan referential integrity — `onDelete` eksplisit per FK.
+- **`audit_logs` append-only**: tidak hanya konvensi aplikasi (hanya `create`),
+  tetapi **ditegakkan trigger PostgreSQL** (migration
+  `20261026153000_audit_log_append_only`) — UPDATE/DELETE/TRUNCATE ditolak.
+  Diverifikasi otomatis oleh `npm run db:verify` (dijalankan di CI job `db`).
+- **Soft-delete** (`deletedAt`) hanya untuk entity yang memang butuh
+  retention/riwayat menurut aturan bisnis — default adalah hard-delete dengan
+  `onDelete` eksplisit. `users` memakai `isActive` (nonaktif, bukan hapus) agar
+  jejak audit tetap bermakna; `audit_logs` tidak pernah dihapus.
+
+### Seed data contoh (`prisma/seed.ts`)
+
+Idempoten (upsert + guard) — aman dijalankan berulang, tidak menduplikasi data.
+Isi seed:
+
+| Data                       | Nilai                                                  |
+| -------------------------- | ------------------------------------------------------ |
+| Role                       | `ADMIN` (Administrator), `MEMBER` (Member)              |
+| User demo                  | `admin@dps.local` (ADMIN), `member@dps.local` (MEMBER)  |
+| Audit log contoh           | 1 baris `seed.run` (entity `system`)                    |
+
+Reset ke kondisi awal (drop + migrate + seed ulang, **destruktif**, lokal saja):
+`npm run db:reset`.
 
 ## 4. API contract (contract-first)
 
@@ -125,7 +163,9 @@ alias `@/modules/<domain>/...`.
 - Unit test: **Vitest**, file `*.test.ts` di samping kode yang diuji,
   jalankan `npm test`.
 - Minimal: logika bisnis dan helper (mis. RBAC, error mapping) punya test.
-- Migration diverifikasi otomatis di CI (job `db`) terhadap PostgreSQL asli.
+- Migration diverifikasi otomatis di CI (job `db`) terhadap PostgreSQL asli,
+  termasuk invarian DB (`npm run db:verify`): `audit_logs` append-only,
+  FK, dan idempotensi seed.
 
 ## 7. Commit, PR & CI/CD
 
