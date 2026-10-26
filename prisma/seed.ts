@@ -1,5 +1,7 @@
 // Seed data contoh — role, user demo, dan satu baris audit.
-// Idempoten (upsert) supaya aman dijalankan berulang.
+// Idempoten (upsert + guard baris audit) supaya aman dijalankan berulang:
+// run ulang tidak mengubah apa pun (audit_logs sendiri append-only, jadi baris
+// contoh hanya dibuat bila belum ada).
 // Dijalankan oleh `npm run db:seed` (lihat prisma7.config.ts).
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -41,16 +43,20 @@ async function main() {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      actorId: admin.id,
-      action: "seed.run",
-      entityType: "system",
-      changes: { seeded: ["roles", "users"] },
-    },
-  });
+  // Baris contoh — hanya dibuat bila belum ada (idempoten; audit_logs append-only).
+  const seededAudit = await prisma.auditLog.findFirst({ where: { action: "seed.run" } });
+  if (!seededAudit) {
+    await prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: "seed.run",
+        entityType: "system",
+        changes: { seeded: ["roles", "users"] },
+      },
+    });
+  }
 
-  console.log("Seed selesai: 2 role, 2 user, 1 audit log.");
+  console.log("Seed selesai: 2 role, 2 user, 1 audit log (idempoten).");
 }
 
 main()
