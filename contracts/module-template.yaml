@@ -1,0 +1,161 @@
+# Template kontrak OpenAPI 3.1 per modul — acuan menambah endpoint baru.
+# Cara pakai (konvensi contract-first, README §4):
+#   1. Salin struktur di bawah ke kontrak agregat `contracts/openapi.yaml`
+#      (tambah `paths` dan `schemas` di bawah tag modul Anda).
+#   2. Ganti TODO: nama modul, path, operationId, skema request/response.
+#   3. Definisikan DTO di `src/shared/types/api.ts` (sinkron manual dengan
+#      kontrak) — JANGAN mendefinisikan ulang tipe di modul lain.
+#   4. Implementasi route di `src/modules/<domain>/api/`, pakai `handleRoute`
+#      (error envelope + request_id otomatis) dan `parseListQuery` untuk
+#      endpoint list.
+#   5. Endpoint wajib terdokumentasi penuh: request, response sukses, dan
+#      SEMUA skenario error (400 validasi + contoh, 401, 404, 500).
+# Lihat `GET /api/v1/users` di contracts/openapi.yaml sebagai contoh acuan.
+
+openapi: 3.1.0
+info:
+  title: <Nama Modul> API  # TODO
+  version: 0.1.0
+  description: Kontrak modul <domain>. # TODO
+servers:
+  - url: /api/v1
+    description: Same-origin (Next.js BFF)
+tags:
+  - name: <domain>  # TODO
+    description: <Deskripsi singkat modul>
+
+paths:
+  /<domain>/<resource>:  # TODO
+    get:
+      tags: [<domain>]
+      summary: <Ringkasan>  # TODO
+      operationId: <operationId>  # TODO, camelCase, unik di seluruh kontrak
+      security:
+        - bearerAuth: []
+      # Untuk endpoint list WAJIB memakai parameter standar berikut:
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Sort"
+        # + filter khas endpoint (whitelist, tervalidasi):
+        # - name: <filter>
+        #   in: query
+        #   required: false
+        #   schema: { type: string }
+      responses:
+        "200":
+          description: <Deskripsi>  # TODO — sertakan contoh (examples)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/<Resource>ListResponse"  # TODO
+        "400":
+          $ref: "#/components/responses/BadRequest"  # sertakan contoh details
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/Internal"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token sesi/JWT (mengikuti keputusan DEC-03).
+
+  # ---- Komponen standar — salin apa adanya (jangan diubah per modul) ----
+  responses:
+    BadRequest:
+      description: Input tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorBody"
+    Unauthorized:
+      description: Tidak terautentikasi / sesi berakhir
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorBody"
+    Internal:
+      description: Kesalahan server tak terduga (detail internal tidak dibocorkan)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorBody"
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Nomor halaman, 1-based.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Jumlah item per halaman.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    Sort:
+      name: sort
+      in: query
+      required: false
+      description: Urutan `<field>:asc|desc` (whitelist field per endpoint).
+      schema:
+        type: string
+        pattern: "^[a-zA-Z]+:(asc|desc)$"
+
+  schemas:
+    ApiErrorBody:
+      type: object
+      required: [error, request_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details: {}
+        request_id:
+          type: string
+
+    ListMeta:
+      type: object
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 1
+
+    # Pola envelope list — ganti <Resource>Dto dengan DTO modul Anda:
+    # <Resource>ListResponse:
+    #   type: object
+    #   required: [data, meta]
+    #   properties:
+    #     data:
+    #       type: array
+    #       items:
+    #         $ref: "#/components/schemas/<Resource>Dto"
+    #     meta:
+    #       $ref: "#/components/schemas/ListMeta"

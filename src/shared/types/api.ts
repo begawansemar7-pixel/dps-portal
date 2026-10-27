@@ -41,6 +41,29 @@ export interface ApiErrorBody {
   request_id: string;
 }
 
+export interface ListMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Envelope standar SEMUA endpoint list: `{ data, meta }` (konvensi README §4). */
 export interface ListResponse<T> {
   data: T[];
+  meta: ListMeta;
+}
+
+/** Query list hasil parsing + validasi (lihat `@/shared/lib/pagination`). */
+export interface ListQuery<TSort extends string = string> {
+  page: number;
+  pageSize: number;
+  sort: { field: TSort; direction: "asc" | "desc" };
+  filters: Record<string, string>;
+}
+
+/** Satu item error validasi input di `ApiErrorBody.error.details`. */
+export interface ValidationErrorItem {
+  field: string;
+  message: string;
 }

@@ -137,16 +137,35 @@ Reset ke kondisi awal (drop + migrate + seed ulang, **destruktif**, lokal saja):
 ## 4. API contract (contract-first)
 
 - Kontrak: `contracts/openapi.yaml` (OpenAPI 3.1). **Ubah kontrak dulu**, lalu
-  implementasi.
+  implementasi. Keputusan layout kontrak: `docs/adr/ADR-002-kontrak-api.md`.
+- Template per modul: `contracts/module-template.yaml` — salin strukturnya saat
+  menambah endpoint modul baru (komponen standar jangan diubah per modul).
 - Shared types: `src/shared/types/api.ts` (disinkronkan manual dengan kontrak;
-  rencana: codegen `openapi-typescript`).
+  rencana: codegen `openapi-typescript`). Dipakai **bersama frontend dan
+  backend** — frontend memanggil API lewat `src/shared/lib/api-client.ts`
+  (typed), jangan mendefinisikan DTO dua kali. Contoh konsumsi lintas stack:
+  halaman `/demo/users`.
 - Prefix: `/api/v1`. Versi bertambah hanya untuk perubahan breaking.
-- Success: DTO langsung, atau `{ "data": [...] }` untuk list.
+- Success: DTO langsung, atau `{ "data": [...], "meta": {...} }` untuk list.
 - Error selalu: `{"error":{"code","message","details?"},"request_id":"..."}` —
   jangan pernah membocorkan detail internal (lihat `src/shared/lib/errors.ts`).
-- Endpoint contoh terdokumentasi: `GET /api/v1/health`, `GET /api/v1/users`.
-  Endpoint auth/RBAC dasar (`/auth/login|logout|me`) sudah dikontrakkan,
-  implementasi menyusul mengikuti keputusan DEC-03.
+- **Konvensi endpoint list** (envelope, pagination, sort, filter) distandarkan
+  di `src/shared/lib/pagination.ts` + parameter komponen OpenAPI `Page`,
+  `PageSize`, `Sort`:
+  - `page` 1-based (default 1); `pageSize` default 10, maksimal 100.
+  - `sort=<field>:asc|desc` dengan whitelist field per endpoint (default
+    `createdAt:desc`).
+  - Filter = query params biasa; hanya field terdaftar yang dipakai, nilai
+    divalidasi (boolean harus `"true"`/`"false"`). Param tak dikenal diabaikan.
+  - Input tidak valid → 400 envelope dengan `details: [{ field, message }]`.
+- **Validasi input di semua entrypoint**: endpoint list memakai `parseListQuery`
+  (+ `parseBooleanFilter` untuk filter boolean); endpoint dengan JSON body
+  memakai validator yang melempar `AppError("BAD_REQUEST", ..., details)` yang
+  sama. Kontrak WAJIB mendokumentasikan 400 + contoh `details`.
+- Endpoint contoh terdokumentasi penuh (request/response/error + contoh):
+  `GET /api/v1/users` — acuan untuk modul lain. `GET /api/v1/health` juga
+  terdokumentasi. Endpoint auth/RBAC dasar (`/auth/login|logout|me`) sudah
+  dikontrakkan, implementasi menyusul mengikuti keputusan DEC-03.
 
 ## 5. Observability & error handling
 
@@ -163,9 +182,28 @@ Reset ke kondisi awal (drop + migrate + seed ulang, **destruktif**, lokal saja):
 - Unit test: **Vitest**, file `*.test.ts` di samping kode yang diuji,
   jalankan `npm test`.
 - Minimal: logika bisnis dan helper (mis. RBAC, error mapping) punya test.
+- Kontrak OpenAPI punya contract test (`src/shared/lib/contract.test.ts`):
+  dokumen YAML valid, komponen standar ada, endpoint contoh terdokumentasi penuh.
 - Migration diverifikasi otomatis di CI (job `db`) terhadap PostgreSQL asli,
   termasuk invarian DB (`npm run db:verify`): `audit_logs` append-only,
   FK, dan idempotensi seed.
+
+### Smoke test latency (NFR-003)
+
+Budget: **P95 ≤ 500 ms** per request API. Cara pengukuran:
+
+1. Jalankan server **produksi**: `npm run build && npm start`, database sudah
+   `migrate` + `seed`.
+2. `npm run smoke:latency` (opsional: `--base-url`, `--path`, `--requests 100`,
+   `--warmup 10`, `--budget-ms 500`).
+3. Skrip memuat endpoint contoh `GET /api/v1/users` secara **sekuenal**
+   (tanpa concurrency) via loopback, membuang 10 request warmup (cold start
+   JIT/cache), lalu mencetak P50/P95/max dan exit 1 bila P95 > budget.
+
+Yang diukur adalah latency aplikasi murni (loopback, tanpa jaringan
+publik/proxy). Tidak dipasang sebagai gate CI karena hasil timing di runner
+shared bersifat flaky — dijalankan lokal/pra-rilis dan hasilnya dilaporkan di
+issue terkait.
 
 ## 7. Commit, PR & CI/CD
 

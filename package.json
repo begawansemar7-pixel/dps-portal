@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
-    "db:verify": "tsx scripts/verify-db-invariants.ts"
+    "db:verify": "tsx scripts/verify-db-invariants.ts",
+    "smoke:latency": "tsx scripts/smoke-latency.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
@@ -42,6 +43,7 @@
     "tailwindcss": "^4",
     "tsx": "4.20.6",
     "typescript": "^5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "yaml": "^2.9.1"
   }
 }
